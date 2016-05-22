@@ -19,7 +19,8 @@ public class PlayerController : MonoBehaviour {
 	private bool isRolling;
 	private bool isDashing;
 	private bool isGrounded;
-	private float dashTime;
+	private bool isJumping;
+	private float dashTimer;
 	private float gDistance;
 
 	private float forward;
@@ -33,6 +34,7 @@ public class PlayerController : MonoBehaviour {
 	private Vector3 vRight;
 
 	void Start(){
+        speed = GetComponent<Player>().speed;
 		rb = GetComponent<Rigidbody> ();
 		Sparks.SetActive (false);
 		SetCountText ();
@@ -43,6 +45,7 @@ public class PlayerController : MonoBehaviour {
 		isRolling = false;
 		isDashing = false;
 		isGrounded = true;
+		isJumping = false;
 		gDistance = GetComponent<Collider> ().bounds.extents.y;
 
 		forward = 0;
@@ -61,7 +64,10 @@ public class PlayerController : MonoBehaviour {
 	}
 	
 	void FixedUpdate(){
+		if(isDashing)
 		Dash ();
+		if(isJumping)
+		Jump ();
 
 		left = 0;
 		right = 0;
@@ -76,7 +82,6 @@ public class PlayerController : MonoBehaviour {
 		//Movement Code In relation to Camera Orientation
 		float moveHorizontal = Input.GetAxis ("Horizontal");
 		float moveVertical = Input.GetAxis("Vertical");
-		print(moveHorizontal + " - " + moveVertical);
 
 		if (moveHorizontal < 0) {
 			left = -1;
@@ -141,11 +146,12 @@ public class PlayerController : MonoBehaviour {
 			winText.text = "LEVEL COMPLETE";
 		}
 	}
-	
+
 	void Movement(){
 		isGrounded = IsGrounded ();
+
 		if ((Input.GetKeyDown (KeyCode.Space) || (Input.GetAxis ("RightTrigger") > 0.0f)) && isGrounded) {
-			Jump ();
+			isJumping = true;
 		}
 		
 		if (Input.GetAxis ("Horizontal") != 0.0f || Input.GetAxis ("Vertical") != 0.0f) {
@@ -154,28 +160,23 @@ public class PlayerController : MonoBehaviour {
 		else {
 			isMoving = false;
 		}
-		
+	
 		if (Input.GetKeyDown (KeyCode.LeftShift)) {
 			//Rotate Player so that the leaves are facing the direction of attack
-			dashTime = 0.2f;
+			dashTimer = 0.2f;
 			isDashing = true;
 			Sparks.SetActive (true);
 		}
 	}
 	
 	void Dash(){
-		if (isDashing) {
-			rb.freezeRotation = true;
-			Vector3 destination = new Vector3 (vForward.x * 5.0f, 0.0f, vForward.z * 5.0f);
-			rb.MovePosition (transform.position + destination * Time.deltaTime * 6.1f);
-			transform.LookAt (new Vector3 (MainCamera.transform.position.x, 0.3f, MainCamera.transform.position.z));
-			dashTime = dashTime - Time.deltaTime;
-		}
-		
-		if (!isGrounded) {
-			transform.LookAt (new Vector3 (MainCamera.transform.position.x, 0.3f, MainCamera.transform.position.z));
-		}
-		if (dashTime <= 0){
+		rb.freezeRotation = true;
+		Vector3 destination = new Vector3 (vForward.x * 5.0f, 0.0f, vForward.z * 5.0f);
+		rb.MovePosition (transform.position + destination * Time.deltaTime * 6.1f);
+		transform.LookAt (new Vector3 (MainCamera.transform.position.x, 0.3f, MainCamera.transform.position.z));
+		dashTimer = dashTimer - Time.deltaTime;
+
+		if (dashTimer <= 0){
 			Sparks.SetActive (false);
 			rb.freezeRotation = false;
 			isDashing = false;
@@ -185,6 +186,7 @@ public class PlayerController : MonoBehaviour {
 	void Jump(){
 		rb.velocity = new Vector3 (rb.velocity.x, jumpSpeed, rb.velocity.z);
 		isRolling = true;
+		isJumping = false;
 	}
 	
 	Vector3 SetVelocity(float mh, float mv){
